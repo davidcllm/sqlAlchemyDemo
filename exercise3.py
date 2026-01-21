@@ -81,10 +81,11 @@ def delete_client(email):
     return False
 
 # Funciones de Eventos
-def create_event(name, start_at, venue, capacity):
+def create_event(name, desc, start_at, venue, capacity):
     #se añade una hora por defecto para cumplir con el esquema del MER
     new_event = Event(
         nombre=name,
+        descripcion=desc,
         fecha_inicio=start_at,
         hora_inicio=time(20, 0),
         lugar=venue,
@@ -123,12 +124,12 @@ if __name__ == "__main__":
 
     # 4. Crear Evento (Concierto X)
     print("\n4. Registrando nuevo evento...")
-    e = create_event("Concierto X", date(2026, 6, 15), "Auditorio Nacional", 1650)
+    e = create_event("Concierto X", None, date(2026, 6, 15), "Auditorio Nacional", 1650)
     print(f"Evento registrado: {e.nombre} en {e.lugar}")
 
     # 5. Crear Evento (Concierto Z)
     print("\n5. Registrando nuevo evento...")
-    e = create_event("Concierto Z", date(2026, 6, 15), "Plaza de Toros", 2000)
+    e = create_event("Concierto Z", None, date(2026, 6, 15), "Plaza de Toros", 2000)
     print(f"Evento registrado: {e.nombre} en {e.lugar}")
 
     # 6. Listar todos
