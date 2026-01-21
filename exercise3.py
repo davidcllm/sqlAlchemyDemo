@@ -119,7 +119,7 @@ if __name__ == "__main__":
     print("\n3. Actualizando teléfono...")
     if update_client_phone("juan@gmail.com", "4420000000"):
         print("Teléfono actualizado correctamente.")
-        print(f"Nuevo telefono {found.telefono}")
+        print(f"Nuevo teléfono: {found.telefono}")
 
     # 4. Crear Evento (Concierto X)
     print("\n4. Registrando nuevo evento...")
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         print(f" - ID: {ev.id_evento} | {ev.nombre} ({ev.fecha_inicio})")
 
     # 7. Eliminar
-    print("\n7. Limpiando datos de prueba (Delete)...")
+    print("\n7. Eliminando cliente...")
     if delete_client("juan@gmail.com"):
         print("Cliente 'juan@gmail.com' eliminado.")
 
