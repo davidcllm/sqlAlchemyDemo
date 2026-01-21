@@ -1,20 +1,21 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, Time, text
 from sqlalchemy.orm import declarative_base, sessionmaker
-from datetime import date
+from datetime import date, time
 import os
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
 load_dotenv()
 
-# Obtener la contraseña cruda del .env
 raw_password = os.getenv("DB_PASSWORD")
+db_name = os.getenv("DB_NAME")
 
-# Codificar la contraseña (esto convertirá el '@' en '%40')
+# Codificar la contraseña (esto convertirá el '@' en '%40' de la contraseña)
 safe_password = quote_plus(raw_password)
 
-# Construir la URL usando la contraseña segura
-DATABASE_URL = f"postgresql://postgres:{safe_password}@localhost:5432/exercise3"
+# Se construye el connection string a partir de la contraseña y el nombre de mi base de datos que se encuentran en el .env
+# Como profesor, puede reemplazar "{safe_password}" por su contraseña y "{db_name}" por el nombre de la suya para correr el programa
+DATABASE_URL = f"postgresql://postgres:{safe_password}@localhost:5432/{db_name}"
 
 Base = declarative_base()
 engine = create_engine(DATABASE_URL)
@@ -80,8 +81,7 @@ def delete_client(email):
 
 # Funciones de Eventos
 def create_event(name, start_at, venue, capacity):
-    # Nota: se añade una hora por defecto para cumplir con el esquema del MER
-    from datetime import time
+    #se añade una hora por defecto para cumplir con el esquema del MER
     new_event = Event(
         nombre=name,
         fecha_inicio=start_at,
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # Esto crea las tablas si no existen
     Base.metadata.create_all(engine)
 
-    print("--- Demostración CRUD con PostgreSQL ---")
+    print("--- Demostración del CRUD con PostgreSQL ---")
 
     # 1. Crear Cliente
     print("\n1. Creando cliente...")
