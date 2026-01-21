@@ -13,8 +13,9 @@ db_name = os.getenv("DB_NAME")
 # Codificar la contraseña (esto convertirá el '@' en '%40' de la contraseña)
 safe_password = quote_plus(raw_password)
 
-# Se construye el connection string a partir de la contraseña y el nombre de mi base de datos que se encuentran en el .env
-# Como profesor, puede reemplazar "{safe_password}" por su contraseña y "{db_name}" por el nombre de la suya para correr el programa
+# Se construye el connection string a partir de la contraseña y el nombre de mi base de datos que se encuentran en el .env.
+# Como profesor, puede reemplazar "{safe_password}" por su contraseña y "{db_name}" por el nombre de la suya para correr el programa.
+# Claro que la contraseña tiene que ser la de su PostgreSQL, y el nombre tiene que ser igual a una que haya creado, preferentemente nueva.
 DATABASE_URL = f"postgresql://postgres:{safe_password}@localhost:5432/{db_name}"
 
 Base = declarative_base()
