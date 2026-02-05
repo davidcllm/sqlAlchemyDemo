@@ -14,7 +14,7 @@ events_collection = database["events"]
 clients_collection.delete_many({})
 events_collection.delete_many({})
 
-# Índice único para email, equivalente a UNIQUE en SQL
+# Índice único para email
 clients_collection.create_index("email", unique=True)
 
 # El crud de clientes
