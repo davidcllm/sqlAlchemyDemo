@@ -10,10 +10,6 @@ database = mongo_client["eventify_db"]
 clients_collection = database["clients"]
 events_collection = database["events"]
 
-# Limpiar colecciones
-clients_collection.delete_many({})
-events_collection.delete_many({})
-
 # Índice único para email
 clients_collection.create_index("email", unique=True)
 
@@ -79,12 +75,15 @@ def list_events():
 
 # Demostración de las funciones
 if __name__ == "__main__":
+    # Limpiar colecciones
+    clients_collection.delete_many({})
+    events_collection.delete_many({})
+
     # 1. Crear cliente
     print("\n1.Creando cliente...")
     client = create_client("Juan", "juan@gmail.com", "4425896310")
-    if client:
-        print("Cliente creado:")
-        print("Nombre:", client['name'] + ", Correo:", client['email'] + ", Telefono:", client['phone'])
+    print("Cliente creado:")
+    print("Nombre:", client['name'] + ", Correo:", client['email'] + ", Telefono:", client['phone'])
 
     # 2. Buscar cliente por email
     print("\n2.Buscando cliente por email...")
