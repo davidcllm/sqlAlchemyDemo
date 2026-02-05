@@ -43,7 +43,7 @@ def get_client_by_email(client_email: str):
 def update_client_phone(client_email: str, new_phone: str):
     result = clients_collection.update_one(
         {"email": client_email},
-        {"$set": {"phone": new_phone}}
+        {"$set": {"phone": new_phone}} # set actualiza el telefono sin sobrescribir el doc completo
     )
     return result.modified_count > 0
 
