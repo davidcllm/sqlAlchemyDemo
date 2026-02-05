@@ -1,148 +1,135 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date, Time, text
-from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import date, time
-import os
-from dotenv import load_dotenv
-from urllib.parse import quote_plus
+from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 
-load_dotenv()
+# MongoDB corriendo en Docker o local
+mongo_client = MongoClient("mongodb://localhost:27017/")
 
-raw_password = os.getenv("DB_PASSWORD")
-db_name = os.getenv("DB_NAME")
+# Base de datos
+database = mongo_client["eventify_db"]
+clients_collection = database["clients"]
+events_collection = database["events"]
 
-# Codificar la contraseña (esto convertirá el '@' en '%40' de la contraseña)
-safe_password = quote_plus(raw_password)
+# Limpiar colecciones (solo para demo)
+clients_collection.delete_many({})
+events_collection.delete_many({})
 
-# Se construye el connection string a partir de la contraseña y el nombre de mi base de datos que se encuentran en el .env.
-# Como profesor, puede reemplazar "{safe_password}" por su contraseña y "{db_name}" por el nombre de la suya para correr el programa.
-# Claro que la contraseña tiene que ser la de su PostgreSQL, y el nombre tiene que ser igual a una que haya creado, preferentemente nueva.
-DATABASE_URL = f"postgresql://postgres:{safe_password}@localhost:5432/{db_name}"
+# Índice único para email (equivalente a UNIQUE en SQL)
+clients_collection.create_index("email", unique=True)
 
-Base = declarative_base()
-engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
-session = Session()
+# El crud de clientes
+def create_client(client_name: str, client_email: str, client_phone: str):
+    client_document = {
+        "name": client_name,
+        "email": client_email,
+        "phone": client_phone
+    }
 
-# Clases
-class Client(Base):
-    __tablename__ = 'cliente'
-    id_cliente = Column(Integer, primary_key=True)
-    nombre = Column(String(100), nullable=False)
-    correo = Column(String(200), nullable=False, unique=True)
-    telefono = Column(String(10), nullable=False)
-
-    def __repr__(self):
-        return f"<Client(id={self.id_cliente}, nombre='{self.nombre}', correo='{self.correo}')>"
-
-class Event(Base):
-    __tablename__ = 'evento'
-    id_evento = Column(Integer, primary_key=True)
-    nombre = Column(String(100), nullable=False)
-    descripcion = Column(String(350))
-    fecha_inicio = Column(Date, nullable=False)
-    hora_inicio = Column(Time, nullable=False)
-    lugar = Column(String(125), nullable=False)
-    capacidad = Column(Integer, nullable=False)
-
-    def __repr__(self):
-        return f"<Event(id={self.id_evento}, nombre='{self.nombre}', lugar='{self.lugar}')>"
-
-# Funciones del CRUD
-
-# Funciones de Clientes
-def create_client(name, email, phone):
-    new_client = Client(nombre=name, correo=email, telefono=phone)
-    session.add(new_client)
+    # Se prueba que el email no exista
     try:
-        session.commit()
-        return new_client
-    except Exception as e:
-        session.rollback()
-        print(f"Error al crear cliente: {e}")
+        result = clients_collection.insert_one(client_document)
+        client_document["_id"] = result.inserted_id
+        return client_document
+
+    except DuplicateKeyError:
+        print("Error: el email ya existe")
         return None
 
-def get_client_by_email(email):
-    return session.query(Client).filter_by(correo=email).first()
 
-def update_client_phone(email, new_phone):
-    client = get_client_by_email(email)
-    if client:
-        client.telefono = new_phone
-        session.commit()
-        return True
-    return False
+def get_client_by_email(client_email: str):
+    return clients_collection.find_one({"email": client_email})
 
-def delete_client(email):
-    client = get_client_by_email(email)
-    if client:
-        session.delete(client)
-        session.commit()
-        return True
-    return False
 
-# Funciones de Eventos
-def create_event(name, desc, start_at, venue, capacity):
-    #se añade una hora por defecto para cumplir con el esquema del MER
-    new_event = Event(
-        nombre=name,
-        descripcion=desc,
-        fecha_inicio=start_at,
-        hora_inicio=time(20, 0),
-        lugar=venue,
-        capacidad=capacity
+def update_client_phone(client_email: str, new_phone: str):
+    result = clients_collection.update_one(
+        {"email": client_email},
+        {"$set": {"phone": new_phone}}
     )
-    session.add(new_event)
-    session.commit()
-    return new_event
+    return result.modified_count > 0
+
+
+def delete_client(client_email: str):
+    result = clients_collection.delete_one({"email": client_email})
+    return result.deleted_count > 0
+
+# Funciones para eventos
+def create_event(
+    event_name: str,
+    event_description: str | None,
+    start_date: date,
+    venue: str,
+    capacity: int
+):
+    event_document = {
+        "name": event_name,
+        "description": event_description,
+        "start_date": start_date.isoformat(),  # Mongo no guarda date nativo, por lo que se usa el formato iso
+        "start_time": time(20, 0).isoformat(),
+        "venue": venue,
+        "capacity": capacity
+    }
+
+    result = events_collection.insert_one(event_document)
+    event_document["_id"] = result.inserted_id
+    return event_document
+
 
 def list_events():
-    return session.query(Event).all()
+    return list(events_collection.find())
 
-
+# Demostración de las funciones
 if __name__ == "__main__":
-    # Esto crea las tablas si no existen
-    Base.metadata.create_all(engine)
+    # 1. Crear cliente
+    print("\n1.Creando cliente...")
+    client = create_client("Juan", "juan@gmail.com", "4425896310")
+    if client:
+        print("Cliente creado:")
+        print("Nombre:", client['name'] + ", Correo:", client['email'] + ", Telefono:", client['phone'])
 
-    print("--- Demostración del CRUD con PostgreSQL ---")
+    # 2. Buscar cliente por email
+    print("\n2.Buscando cliente por email...")
+    found_client = get_client_by_email("juan@gmail.com")
+    print("Resultado:")
+    print("Nombre:", found_client['name'] + ", Correo:", found_client['email'] + ", Telefono:", found_client['phone'])
 
-    # 1. Crear Cliente
-    print("\n1. Creando cliente...")
-    c = create_client("Juan", "juan@gmail.com", "4425896310")
-    if c: print(f"Éxito: {c}")
-
-    # 2. Consultar por Email
-    print("\n2. Buscando cliente 'juan@gmail.com'...")
-    found = get_client_by_email("juan@gmail.com")
-    if found:
-        print(f"Resultado: {found.nombre} | Teléfono: {found.telefono}")
-
-    # 3. Actualizar
-    print("\n3. Actualizando teléfono...")
+    # 3. Actualizar teléfono
+    print("\n3.Actualizando teléfono...")
     if update_client_phone("juan@gmail.com", "4420000000"):
-        print("Teléfono actualizado correctamente.")
-        print(f"Nuevo teléfono: {found.telefono}")
+        updated = get_client_by_email("juan@gmail.com")
+        print("Teléfono actualizado:", updated["phone"])
 
-    # 4. Crear Evento (Concierto X)
-    print("\n4. Registrando nuevo evento...")
-    e = create_event("Concierto X", None, date(2026, 6, 15), "Auditorio Nacional", 1650)
-    print(f"Evento registrado: {e.nombre} en {e.lugar}")
+    # 4. Crear evento (Concierto X)
+    print("\n4.Registrando evento...")
+    event = create_event(
+        "Concierto X",
+        None,
+        date(2026, 6, 15),
+        "Auditorio Nacional",
+        1650
+    )
+    print("Evento creado:", event)
 
-    # 5. Crear Evento (Concierto Z)
-    print("\n5. Registrando nuevo evento...")
-    e = create_event("Concierto Z", None, date(2026, 6, 15), "Plaza de Toros", 2000)
-    print(f"Evento registrado: {e.nombre} en {e.lugar}")
+    # 5. Crear evento (Concierto Z)
+    print("\n5.Registrando otro evento...")
+    event = create_event(
+        "Concierto Z",
+        None,
+        date(2026, 6, 15),
+        "Plaza de Toros",
+        2000
+    )
+    print("Evento creado:", event)
 
-    # 6. Listar todos
-    print("\n6. Listado de eventos en BD:")
-    eventos = list_events()
-    for ev in eventos:
-        print(f" - ID: {ev.id_evento} | {ev.nombre} ({ev.fecha_inicio})")
+    # 6. Listar eventos
+    print("\n6.Listando todos los eventos...")
+    for evento in list_events():
+        print(f" - {evento['name']}, {evento['venue']}, {evento['start_date']}")
 
-    # 7. Eliminar
-    print("\n7. Eliminando cliente...")
+    # 7. Eliminar cliente
+    print("\n7.Eliminando cliente...")
     if delete_client("juan@gmail.com"):
-        print("Cliente 'juan@gmail.com' eliminado.")
+        print("Cliente eliminado")
 
-    # 8. Verificar que no existe
-    print("\n8. Verificar que el cliente se haya eliminado...")
+    # 8. Verificar eliminación
+    print("\n8.Verificando cliente eliminado...")
     print(get_client_by_email("juan@gmail.com"))
