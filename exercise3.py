@@ -2,7 +2,7 @@ from datetime import date, time
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
-# MongoDB corriendo en Docker o local
+# MongoDB corriendo en Docker
 mongo_client = MongoClient("mongodb://localhost:27017/")
 
 # Base de datos
@@ -10,11 +10,11 @@ database = mongo_client["eventify_db"]
 clients_collection = database["clients"]
 events_collection = database["events"]
 
-# Limpiar colecciones (solo para demo)
+# Limpiar colecciones
 clients_collection.delete_many({})
 events_collection.delete_many({})
 
-# Índice único para email (equivalente a UNIQUE en SQL)
+# Índice único para email, equivalente a UNIQUE en SQL
 clients_collection.create_index("email", unique=True)
 
 # El crud de clientes
